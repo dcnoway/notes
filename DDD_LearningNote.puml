@@ -1,0 +1,87 @@
+@startuml DDD.NET.ArchitectureLayerView
+package Web
+note right: DDD中的Application层
+package ApplicationCore
+note right: DDD中的Domain层
+package Infrastructure
+note right: DDD中的Infrastructure层
+Web ..> ApplicationCore
+Infrastructure ..> ApplicationCore
+Web ..> Infrastructure
+@enduml
+
+@startuml DDD.NET.DomainLayerClassView
+class Order{
+    + <<property>> string BuyerId {get; private set}
+    + <<property>> DateTimeOffset OrderDate {get; private set}
+    + <<property>> Address ShipToAddress {get; private set}
+    - List<OrderItem> _orderItem
+    + IReadOnlyCollection<OrderItem> OrderItems
+    - Order()
+    + Order(string buyerId, Address shipToAddress, List<OrderItem> items)
+    + decimal Total()
+}
+
+() IAggrigateRoot
+IAggrigateRoot -- Order
+
+class OrderItem{
+    + <<property>> CatalogItemOrdered ItemOrdered {get; private set}
+    + <<property>> decimal UnitPrice {get; private set}
+    + <<property>> int Units {get; private set}
+    - OrderItem()
+    + OrderItem(CatalogItemOrdered items, decimal unitPrice, int units)
+}
+Order *--> OrderItem
+
+abstract BaseEntity{
+    + <<property>> int Id 
+}
+BaseEntity <|-- Order
+BaseEntity <|-- OrderItem
+
+class Address{
+    + readonly string Street
+    + readonly string City
+    + readonly string State
+    + readonly string Country
+    + readonly string ZipCode
+    - Address()
+    + Address(string street, string city, string state, string country, string zipCode)
+}
+Order --> Address
+OrderItem --> CatalogItemOrdered
+class CatalogItemOrdered{
+    + readonly int CatalogItemId
+    + readonly string ProductName
+    + readonly string PictureUri
+    - CatalogItemOrdered()
+    + CatalogItemOrdered(int itemId, string productName, string pictureUri)
+}
+
+interface IOrderRepository{
+    + Task<Order> GetByIdWithItemsAsync(int id)
+}
+IOrderRepository --> Order
+@enduml
+
+@startuml DDD.NET.InfrastructureClassView
+interface IAsyncRepository <T>{
+    + Task<T> GetByIdAsync(int id, CancellationToken token = default)
+}
+interface IOrderRepository{
+    + Task<Order> GetByIdWithItemsAsync(int id)
+}
+class EfRepository<T>{
+    # DbContext _dbContext
+    + EfRepository(DbContext dbContext)
+}
+class OrderRepository{
+    + OrderRepository(DbContext dbContext)
+    + Task<T> GetByIdAsync(int id)
+}
+IOrderRepository --|> IAsyncRepository : IAsyncRepository<Order>
+OrderRepository --|> EfRepository: EfRepository<Order>
+EfRepository ..|> IAsyncRepository
+OrderRepository ..|> IOrderRepository
+@enduml
