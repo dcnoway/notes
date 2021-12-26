@@ -85,3 +85,55 @@ OrderRepository --|> EfRepository: EfRepository<Order>
 EfRepository ..|> IAsyncRepository
 OrderRepository ..|> IOrderRepository
 @enduml
+
+@startuml DDD.Java.JpaInfrastrutureClassView
+class AggregateRoot{
+    + string field
+    + ValueObject vo
+    + bussinessOp1()
+    + bussinessOp2()
+}
+class ValueObject{
+    string field1
+    string field2
+}
+class AggregateEntity <<EJBEntity>> {
+    + Long id
+    + string field
+    + ValueObject vo
+}
+note top of AggregateEntity : @Entity
+note left of AggregateEntity::id
+    @Id
+    @GeneratedValue
+end note
+interface AggregateRepository{
+    + AggregateRoot retrieve()
+    + save(AggregateRoot ar)
+}
+class AggregateJpaRepository{
+    + AggregateRoot findByField(string field)
+    + AggregateRoot retrieve()
+    + save(AggregateRoot ar)
+}
+note right of AggregateJpaRepository
+@Component
+@Transactional(propagation = Propagation.REQUIRES_NEW)
+end note
+interface AggregateDAO{
+    + AggregateRoot findByField(string field)
+}
+annotation Aggregate
+() JpaRepository
+AggregateDAO -- JpaRepository : JpaRepository<AggregateEntity, Long>
+AggregateRoot -->ValueObject
+AggregateRoot ..|>Aggregate
+AggregateRepository -->AggregateRoot
+AggregateJpaRepository --|>AggregateRepository
+AggregateJpaRepository -->AggregateDAO
+AggregateJpaRepository -->AggregateEntity
+
+note "fields重复代码，需要手工同步" as N1
+N1 ... AggregateRoot
+N1 ... AggregateEntity
+@enduml
